@@ -3,19 +3,24 @@
 
 """
 import sys
-sys.path.append(r"C:\Python27\Lib")
-sys.path.append(r"C:\Python27\Lib\site-packages")
 import serial
 import time
 from enum import Enum
+
 ser = 0
-Debug_Level = 1;
-GTrId = 0;
+Debug_Level = 1
+GTrId = 0
+
 
 class AUT_POSMODE(Enum):
-    AUT_NORMAL = 0 # fast positioningmode
+    AUT_NORMAL = 0  # fast positioningmode
     AUT_PRECISE = 1
     AUT_Fast = 2
+
+
+class AUT_ATRMODE(Enum):
+    AUT_POSITION = 0,  # Positioning to the hz - and v - angle
+    AUT_TARGET = 1  # Positioning to a target of the hz and v angle
 
 
 class ResponseClass:
@@ -41,19 +46,20 @@ class ResponseClass:
         :param response: ASCII response from the station
         :type response: ResponseClass
         """
-        if(Debug_Level==2) :
-            print('response = ',response)
+        if (Debug_Level == 2):
+            print('response = ', response)
         # remove the ' from the string, remove the end-line character and split it up
-        words = response.replace('\'','').strip().split(',')
+        words = response.replace('\'', '').strip().split(',')
         # print words
-        if(len(words)>1):
+        if (len(words) > 1):
             self.RC_COM = int(words[1])
             words2 = words[2].split(':')
             self.TrId = int(words2[0])
             self.RC = int(words2[1])
             self.parameters = words[3:len(words)]
-            if(self.RC!=0 and Debug_Level==1) :
-                print ('Problem occurred, Error code: ', self.RC)
+            if (self.RC != 0 and Debug_Level == 1):
+                print('Problem occurred, Error code: ', self.RC)
+
 
 class SerialRequestError(Exception):
     """
@@ -62,6 +68,7 @@ class SerialRequestError(Exception):
     :param Exception: An exception occurred during a request
     :type Exception: Exception
     """
+
     def __init__(self, value):
         """
         Init the Error
@@ -70,11 +77,13 @@ class SerialRequestError(Exception):
         :type value: str
         """
         self.value = value
+
     def __str__(self):
         """
         Return the message from the error as a string (str)
         """
         return repr(self.value)
+
 
 def getTrId(request):
     """
@@ -85,10 +94,11 @@ def getTrId(request):
     :returns: parsed transaction ID
     :rtype: int
     """
-    words = request.replace('\'','').strip().split(',')[2].split(':')
+    words = request.replace('\'', '').strip().split(',')[2].split(':')
     return int(words[0])
 
-def SerialRequest(request, length = 0, t_timeout = 3):
+
+def SerialRequest(request, length=0, t_timeout=3):
     """
     Send a request to the server (total station).
 
@@ -101,13 +111,13 @@ def SerialRequest(request, length = 0, t_timeout = 3):
 
     :exception SerialRequestError: thrown if an error occurs during the communication
     """
-    if(Debug_Level==2) :
-        print ('request = ', request)
+    if (Debug_Level == 2):
+        print('request = ', request)
     id = getTrId(request)
     response = ResponseClass()
     global ser
 
-    try : # try method for the case that TS is not connected
+    try:  # try method for the case that TS is not connected
         ser.read(ser.inWaiting())
         ser.write(request + '\r\n')
         t_start = time.time()
@@ -115,25 +125,27 @@ def SerialRequest(request, length = 0, t_timeout = 3):
         # 1: buffer has specific length
         # 2: if specific length not defined (=0), then until buffer > 0
         # 3: timeout not reached
-        while((ser.inWaiting()<length or (length == 0 and ser.inWaiting()==0)) and time.time()-t_start<t_timeout) :
+        while ((ser.inWaiting() < length or (
+                length == 0 and ser.inWaiting() == 0)) and time.time() - t_start < t_timeout):
             time.sleep(0.001)
 
-        if(time.time()-t_start>=t_timeout) :
+        if (time.time() - t_start >= t_timeout):
             response.RC = 3077
             return response
 
-        time.sleep(0.025)    # Short break to make sure serial port is not read while stuff is written
+        time.sleep(0.025)  # Short break to make sure serial port is not read while stuff is written
         serial_output = ser.read(ser.inWaiting())
         response.setResponse(serial_output)
-        if response.TrId != id :
+        if response.TrId != id:
             response.RC = 3077
             return response
-    except KeyboardInterrupt as e :
+    except KeyboardInterrupt as e:
         raise KeyboardInterrupt(e)
-    except :
+    except:
         raise SerialRequestError("Leica TS communication error - not connected?")
         response.RC = 1
     return response
+
 
 def HexToDec(hex_in):
     """
@@ -160,22 +172,23 @@ def CreateRequest(cmd, args=None):
     :rtype: str
     """
     global GTrId
-    #\n is LF flag to flush buffer
+    # \n is LF flag to flush buffer
     request = '\n%R1Q,'
-    request = request + str(cmd)+ ',' + str(GTrId)
+    request = request + str(cmd) + ',' + str(GTrId)
     request = request + ':'
 
-    GTrId+=1
+    GTrId += 1
     if GTrId == 8:
-        GTrId=0
+        GTrId = 0
 
-    if(args!=None):
-        if(len(args)>0):
-            for i in range(0,len(args)) :
+    if (args != None):
+        if (len(args) > 0):
+            for i in range(0, len(args)):
                 request = request + str(args[i])
                 request = request + ','
             request = request + str(args[-1])
         return request
+
 
 """#############################################################################
 ########################### COM - COMMUNICATION ################################
@@ -188,6 +201,7 @@ These functions relate either to the client side or to the server side.
 """
 .. module :: GeoCom.com
 """
+
 
 def COM_OpenConnection(ePort, eRate, nRetries=10):
     """
@@ -211,7 +225,7 @@ def COM_OpenConnection(ePort, eRate, nRetries=10):
     """
 
     global ser
-    try :
+    try:
         ser = serial.Serial(
             port=ePort,
             baudrate=eRate,
@@ -220,21 +234,21 @@ def COM_OpenConnection(ePort, eRate, nRetries=10):
             bytesize=serial.EIGHTBITS
         )
 
-        while(not ser.isOpen()) :
+        while (not ser.isOpen()):
             ser.open()
-            if(not ser.isOpen()) :
+            if (not ser.isOpen()):
                 ser.close()
 
-        if(not ser.isOpen() and Debug_Level==1) :
+        if (not ser.isOpen() and Debug_Level == 1):
             print('Problem opening port')
 
         # 0 = everything ok
-        return [not ser.isOpen(),ser,0]
+        return [not ser.isOpen(), ser, 0]
 
     except Exception as e:
-        print ("Connection Error - Leica TS not connected?\n")
-        print (str(e))
-        return [1,0,[]]
+        print("Connection Error - Leica TS not connected?\n")
+        print(str(e))
+        return [1, 0, []]
 
 
 def COM_CloseConnection():
@@ -250,75 +264,75 @@ def COM_CloseConnection():
     global ser
     ser.close()
 
+    if (not ser.isOpen() and Debug_Level == 1):
+        print('Problem closing port')
 
-    if(not ser.isOpen() and Debug_Level==1) :
-        print ('Problem closing port')
-
-    return [ser.isOpen(),0,[]]
+    return [ser.isOpen(), 0, []]
 
 
-def COM_SwitchOnTPS(eOnMode=2) :
+def COM_SwitchOnTPS(eOnMode=2):
     """ [GeoCOM manual **p96**] """
 
-    request = CreateRequest('111',[eOnMode])
+    request = CreateRequest('111', [eOnMode])
 
-    response = SerialRequest(request,0,60)
+    response = SerialRequest(request, 0, 60)
 
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Turn on TPS')
+        if (Debug_Level == 1):
+            print('Turn on TPS')
 
-    elif(response.RC==5) :
+    elif (response.RC == 5):
         error = 0
-        if(Debug_Level==1) :
-            print ('TPS already turned on')
+        if (Debug_Level == 1):
+            print('TPS already turned on')
 
-    else :
+    else:
         error = 1
-        if(Debug_Level==1) :
-            print ('Problem turning TPS on')
+        if (Debug_Level == 1):
+            print('Problem turning TPS on')
 
-    return [error,response.RC,[]]
+    return [error, response.RC, []]
 
 
-def COM_SwitchOffTPS(eOffMode=0) :
+def COM_SwitchOffTPS(eOffMode=0):
     """ [GeoCOM manual **p97**] """
 
-    request = CreateRequest('112',[eOffMode])
+    request = CreateRequest('112', [eOffMode])
 
-    response = SerialRequest(request,0,60)
+    response = SerialRequest(request, 0, 60)
 
-
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Shut down TPS')
+        if (Debug_Level == 1):
+            print('Shut down TPS')
 
-    else :
+    else:
         error = 1
-        if(Debug_Level==1) :
-            print ('Error shutting down TPS')
+        if (Debug_Level == 1):
+            print('Error shutting down TPS')
 
-    return [error,response.RC,[]]
+    return [error, response.RC, []]
 
-def COM_GetSWVersion() :
+
+def COM_GetSWVersion():
     """ [GeoCOM manual **p95**] """
 
-    request = CreateRequest('110',[])
+    request = CreateRequest('110', [])
 
-    response = SerialRequest(request,0,60)
+    response = SerialRequest(request, 0, 60)
 
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
-    else :
+    else:
         error = 1
 
     # Print a list [Software release, Software version, Software subversion]
-    print(response.parameters )
+    print(response.parameters)
 
-    return [error,response.RC,[]]
+    return [error, response.RC, []]
+
 
 """#############################################################################
 ########################## CSV - CENTRAL SERVICES ##############################
@@ -327,32 +341,31 @@ Central Services; this module provides functions to get or set central/basic
 information about the TPS1200 instrument.
 """
 
+
 def CSV_GetDateTime():
     """
     [GeoCOM manual **p107**]
     """
     DateTime = []
 
-    request = CreateRequest('110',[])
+    request = CreateRequest('110', [])
 
-    response = SerialRequest(request,0,60)
+    response = SerialRequest(request, 0, 60)
 
     response = SerialRequest()
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
         DateTime = [int(response.parameters[0])]
-        for i in range(1,len(response.parameters)) :
+        for i in range(1, len(response.parameters)):
             DateTime.append(HexToDec(response.parameters[i]))
 
-        if(Debug_Level==1) :
-            print ('Date and Time: ', DateTime)
+        if (Debug_Level == 1):
+            print('Date and Time: ', DateTime)
 
-
-
-    return [error,response.RC,DateTime]
+    return [error, response.RC, DateTime]
 
 
 def CSV_GetInstrumentNo():
@@ -367,12 +380,13 @@ def CSV_GetInstrumentNo():
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Serial number : ' + str(response.parameters))
+        if (Debug_Level == 1):
+            print('Serial number : ' + str(response.parameters))
 
     return [error, response.RC, response.parameters]
+
 
 def CSV_GetInstrumentName():
     """
@@ -385,12 +399,13 @@ def CSV_GetInstrumentName():
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Instrument name : ' + str(response.parameters))
+        if (Debug_Level == 1):
+            print('Instrument name : ' + str(response.parameters))
 
     return [error, response.RC, response.parameters]
+
 
 def CSV_GetReflectorlessClass():
     """
@@ -399,17 +414,18 @@ def CSV_GetReflectorlessClass():
     FlexLine Geocom 1.20 page 58
     :return: Prism type
     """
-    DateTime = []
-
-    response = SerialRequest('%R1Q,5100:')
+    # TODO maybe this is not correct
+    request = CreateRequest("5100", [])
+    response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Prism : ' + str(response.parameters))
+        if (Debug_Level == 1):
+            print('Prism : ' + str(response.parameters))
 
     return [error, response.RC, response.parameters]
+
 
 """#############################################################################
 ########################## AUT - AUTOMATION ################################
@@ -430,27 +446,26 @@ AUT_TARGET = 1 // Positioning to a target in the
 // environment of the hz- and v-angle.
 '''
 
+
 def AUT_MakePositioning(Hz, V, POSMode=0, ATRMode=0, bDummy=0):
     """
     [GeoCOM manual **p49**]
     """
 
-    request = CreateRequest('9027',[Hz,V,POSMode, ATRMode, bDummy])
+    request = CreateRequest('9027', [Hz, V, POSMode, ATRMode, bDummy])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Going to new position: ', Hz, ',', V)
-
+        if (Debug_Level == 1):
+            print('Going to new position: ', Hz, ',', V)
 
     return [error, response.RC, []]
 
 
-
-def AUT_Search(Hz_Area, V_Area, bDummy = 0):
+def AUT_Search(Hz_Area, V_Area, bDummy=0):
     """
     [GeoCOM manual **p56**]
 
@@ -471,19 +486,19 @@ def AUT_Search(Hz_Area, V_Area, bDummy = 0):
     :rtype: list
     """
 
-    request = CreateRequest('9029',[Hz_Area, V_Area, bDummy])
+    request = CreateRequest('9029', [Hz_Area, V_Area, bDummy])
 
-    response = SerialRequest(request,0, 120)
+    response = SerialRequest(request, 0, 120)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Target search successful')
-    else :
-        if(Debug_Level==1) :
-            if(response.RC==8710) :
-                print ('No target found')
+        if (Debug_Level == 1):
+            print('Target search successful')
+    else:
+        if (Debug_Level == 1):
+            if (response.RC == 8710):
+                print('No target found')
 
     return [error, response.RC, []]
 
@@ -509,18 +524,18 @@ def AUT_FineAdjust(dSrchHz=0.1, dSrchV=0.1):
     :rtype: list
     """
 
-    request = CreateRequest('9037',[dSrchHz, dSrchV, 0])
+    request = CreateRequest('9037', [dSrchHz, dSrchV, 0])
 
-    response = SerialRequest(request,0,120)
+    response = SerialRequest(request, 0, 120)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
     return [error, response.RC, []]
 
 
-def AUT_LockIn() :
+def AUT_LockIn():
     """
     [GeoCOM manual **p60**]
 
@@ -536,16 +551,15 @@ def AUT_LockIn() :
     :rtype: list
     """
 
-    request = CreateRequest('9013',[])
+    request = CreateRequest('9013', [])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Lock successful')
-
+        if (Debug_Level == 1):
+            print('Lock successful')
 
     return [error, response.RC, []]
 
@@ -564,14 +578,14 @@ def AUT_GetSearchArea():
 
     :rtype: list
     """
-    request = CreateRequest('9042',[])
+    request = CreateRequest('9042', [])
 
     response = SerialRequest(request)
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Parameters: ', response.parameters)
+        if (Debug_Level == 1):
+            print('Parameters: ', response.parameters)
 
     return [error, response.RC, response.parameters]
 
@@ -605,7 +619,7 @@ def AUT_SetSearchArea(dCenterHz, dCenterV, dRangeHz, dRangeV, bEnabled=1):
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
     return [error, response.RC, []]
@@ -630,7 +644,7 @@ def AUT_PS_EnableRange(bEnable):
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
     return [error, response.RC, []]
@@ -658,7 +672,7 @@ def AUT_PS_SetRange(lMinDist, lMaxDist):
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
     return [error, response.RC, []]
@@ -682,14 +696,15 @@ def AUT_PS_SearchWindow():
 
     :rtype: list
     """
-    request = CreateRequest('9052',[])
-    response = SerialRequest(request,0,120)
+    request = CreateRequest('9052', [])
+    response = SerialRequest(request, 0, 120)
     print(str(response.RC))
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
     return [error, response.RC, []]
+
 
 def AUT_ReadToi():
     """
@@ -697,16 +712,17 @@ def AUT_ReadToi():
     nstrument axis. This command is valid for motorized instruments only.
     :return: [error, RC, [Tolerance Hz[double],Tolerance V[double]]
     """
-    request = CreateRequest('9008',[])
-    response = SerialRequest(request,0,120)
+    request = CreateRequest('9008', [])
+    response = SerialRequest(request, 0, 120)
     print(str(response.RC))
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
     return [error, response.RC, []]
 
-def AUT_SetTol(toleranceHz = 1.0, toleranceV = 1.0):
+
+def AUT_SetTol(toleranceHz=1.0, toleranceV=1.0):
     """
     This command sets new values for the positioning tolerances of the Hz- and V- instrument axes.
     This command is valid for motorized instruments only.
@@ -714,32 +730,35 @@ def AUT_SetTol(toleranceHz = 1.0, toleranceV = 1.0):
     :return: error, RC, []
     """
 
-    request = CreateRequest('9007',[toleranceHz, toleranceV])
+    request = CreateRequest('9007', [toleranceHz, toleranceV])
     response = SerialRequest(request)
     print(str(response.RC))
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
     return [error, response.RC, []]
+
 
 def AUT_ReadTimeout():
     """
     This command reads the current setting for the positioning time out (maximum time to perform positioning).
     :return: error, RC, RC, [TimeoutHz[double], TimeoutV[double]]
     """
-    request = CreateRequest('9012',[])
+    request = CreateRequest('9012', [])
     response = SerialRequest(request)
     print(str(response.RC))
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
     return [error, response.RC, [response.parameters]]
 
+
 def AUT_SetTimeout():
-    #TODO Maybe in the future
+    # TODO Maybe in the future
     pass
+
 
 def AUT_ChangeFace(PosMode, ATRMode):
     """
@@ -752,13 +771,46 @@ def AUT_ChangeFace(PosMode, ATRMode):
     area.
     :return: error, RC []
     """
+    if not isinstance(PosMode, AUT_POSMODE):
+        raise TypeError('PosMode must be an instance of AUT_POSMODE Enum')
+
+    if not isinstance(ATRMode, AUT_ATRMODE):
+        raise TypeError('ATRMode must be an instance of AUT_ATRMODE Enum')
+
+    request = CreateRequest('9028', [PosMode, ATRMode, 0])
+    response = SerialRequest(request)
+    error = 1
+    if (response.RC == 0):
+        error = 0
+
+    return [error, response.RC, []]
+
+def AUT_GetFineAdjustMode():
+    """
+    This function returns the current activated fine adjust positioning mode. This command is valid for all instruments,
+    but has only effects for instruments equipped with ATR.
+
+    9030
+
+    :return:
+    """
+    request = CreateRequest('9030', [])
+    response = SerialRequest(request)
+    error = 1
+    if (response.RC == 0):
+        error = 0
+
+    return [error, response.RC, [response.parameters]]
+
 """#############################################################################
 #################### EDM - Electronic Distance Measurement #####################
 ################################################################################
 Electronic Distance Meter; the module, which measures distances.
 
 """
-def EDM_Laserpointer(eOn = 0):
+
+
+def EDM_Laserpointer(eOn=0):
     """
     [GeoCOM manual **p114**]
 
@@ -775,18 +827,18 @@ def EDM_Laserpointer(eOn = 0):
     :rtype: list
     """
 
-    request = CreateRequest('1004',[eOn])
+    request = CreateRequest('1004', [eOn])
 
-    response = SerialRequest(request,0,30)
+    response = SerialRequest(request, 0, 30)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Laserpointer turned on/off')
-
+        if (Debug_Level == 1):
+            print('Laserpointer turned on/off')
 
     return [error, response.RC, []]
+
 
 """#############################################################################
 ################ TMC - Theodolite Measurement and Calculation ##################
@@ -794,24 +846,27 @@ def EDM_Laserpointer(eOn = 0):
 Theodolite Measurement and Calculation; the core module for getting measurement
 data.
 """
+
+
 def TMC_GetStation():
     """
     This function is used to get the co-ordinates of the instrument station
     :return: %R1P,0,0:RC,E0[double],N0[double],H0[double],Hi[double]
     """
-    response = SerialRequest('%R1Q,2009:')
+    request = CreateRequest("2009", [])
+    response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Coordinates : ' + str(response.parameters))
+        if (Debug_Level == 1):
+            print('Coordinates : ' + str(response.parameters))
 
-    #%R1P,0,0:RC,E0[double],N0[double],H0[double],Hi[double]
+    # %R1P,0,0:RC,E0[double],N0[double],H0[double],Hi[double]
     return [error, response.RC, response.parameters]
 
 
-def TMC_SetStation(e0 = 0.0, N0 = 0.0, H0 = 0.0, Hi = 0.0):
+def TMC_SetStation(e0=0.0, N0=0.0, H0=0.0, Hi=0.0):
     """
     This function is used to get the co-ordinates of the instrument station
     :return: %R1P,0,0:RC,E0[double],N0[double],H0[double],Hi[double]
@@ -820,35 +875,39 @@ def TMC_SetStation(e0 = 0.0, N0 = 0.0, H0 = 0.0, Hi = 0.0):
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Coorinates set : ' + str(response.RC))
+        if (Debug_Level == 1):
+            print('Coorinates set : ' + str(response.RC))
 
-    #%R1P,0,0:RC,E0[double],N0[double],H0[double],Hi[double]
+    # %R1P,0,0:RC,E0[double],N0[double],H0[double],Hi[double]
     return [error, response.RC, []]
+
 
 def TMC_GetRefractiveMethod():
     """
     This function is used to get the current refraction model.
     :return:
     """
-    response = SerialRequest('%R1Q,2091:')
+    request = CreateRequest("2091", [])
+    response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Prism : ' + str(response.parameters))
+        if (Debug_Level == 1):
+            print('Prism : ' + str(response.parameters))
 
     return [error, response.RC, response.parameters]
-def TMC_SetRefractiveMethod():
 
+
+def TMC_SetRefractiveMethod():
     """
     This function is used to set the refraction model.
     :return:
     """
     pass
+
 
 def TMC_SetOrientation():
     """
@@ -865,17 +924,18 @@ def TMC_SetOrientation():
     :rtype: list
     """
 
-    request = CreateRequest('2113',[0])
+    request = CreateRequest('2113', [0])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
 
     return [error, response.RC, []]
 
-def TMC_DoMeasure(cmd=1, mode=1) : #TMC Measurement Modes in geocom manual p.91
+
+def TMC_DoMeasure(cmd=1, mode=1):  # TMC Measurement Modes in geocom manual p.91
     """
     [GeoCOM manual **p141**]
 
@@ -895,21 +955,20 @@ def TMC_DoMeasure(cmd=1, mode=1) : #TMC Measurement Modes in geocom manual p.91
     :rtype: list
     """
 
-    request = CreateRequest('2008',[cmd,mode])
+    request = CreateRequest('2008', [cmd, mode])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Measuring successful')
-
+        if (Debug_Level == 1):
+            print('Measuring successful')
 
     return [error, response.RC, []]
 
 
-def TMC_SetEdmMode(mode=6) :
+def TMC_SetEdmMode(mode=6):
     """
     [GeoCOM manual **p167**]
 
@@ -946,62 +1005,64 @@ def TMC_SetEdmMode(mode=6) :
     :rtype: list
     """
 
-    request = CreateRequest('2020',[mode])
+    request = CreateRequest('2020', [mode])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('EDM Mode set successfully')
+        if (Debug_Level == 1):
+            print('EDM Mode set successfully')
 
     return [error, response.RC, []]
 
 
-def TMC_GetCoordinate(WaitTime=100,mode=1) :
+def TMC_GetCoordinate(WaitTime=100, mode=1):
     """ [GeoCOM manual **p130**] """
 
     coord = []
 
-    request = CreateRequest('2082',[WaitTime,mode])
+    request = CreateRequest('2082', [WaitTime, mode])
 
     response = SerialRequest(request)
 
     error = 0
 
-    if(len(response.parameters)==8) :
+    if (len(response.parameters) == 8):
 
-        coord = [float(response.parameters[0]),float(response.parameters[1]),float(response.parameters[2])]
+        coord = [float(response.parameters[0]), float(response.parameters[1]), float(response.parameters[2])]
 
-        if(Debug_Level==1) :
-            print ('Coordinates read successfully: ', coord)
-
+        if (Debug_Level == 1):
+            print('Coordinates read successfully: ', coord)
 
     return [error, response.RC, coord]
+
 
 def TMC_GetStation(WaitTime=100):
     """ [GeoCOM manual **p155**] """
 
     coord = []
 
-    request = CreateRequest('2009',[WaitTime])
+    request = CreateRequest('2009', [WaitTime])
 
     response = SerialRequest(request)
 
     error = 0
 
-    if(len(response.parameters)==4) :
+    if (len(response.parameters) == 4):
 
-        coord = [float(response.parameters[0]),float(response.parameters[1]),float(response.parameters[2]),float(response.parameters[3])]
+        coord = [float(response.parameters[0]), float(response.parameters[1]), float(response.parameters[2]),
+                 float(response.parameters[3])]
 
-        if(Debug_Level==1) :
-            print ('Station coordinates received successfully! ',coord)
-
+        if (Debug_Level == 1):
+            print('Station coordinates received successfully! ', coord)
 
     return [error, response.RC, []]
 
-def TMC_GetSimpleMea(WaitTime=100, mode = 1) : #TMC_GetSimpleMea - Returns angle and distance measurement - geocom manual p.95
+
+def TMC_GetSimpleMea(WaitTime=100,
+                     mode=1):  # TMC_GetSimpleMea - Returns angle and distance measurement - geocom manual p.95
     """
     [GeoCOM manual **p132**]
 
@@ -1027,61 +1088,59 @@ def TMC_GetSimpleMea(WaitTime=100, mode = 1) : #TMC_GetSimpleMea - Returns angle
     """
 
     coord = []
-    request = CreateRequest('2108',[WaitTime,mode])
+    request = CreateRequest('2108', [WaitTime, mode])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if len(response.parameters) < 3 :
+        if len(response.parameters) < 3:
             return [1, 1, []]
-        coord = [response.parameters[0],response.parameters[1],response.parameters[2]]
-        if(Debug_Level==1) :
-            print ('Coordinates read successfully: ', coord)
-    if(response.RC==1284) :
+        coord = [response.parameters[0], response.parameters[1], response.parameters[2]]
+        if (Debug_Level == 1):
+            print('Coordinates read successfully: ', coord)
+    if (response.RC == 1284):
         error = 1284
-        coord = [response.parameters[0],response.parameters[1],response.parameters[2]]
-        if(Debug_Level==1) :
-            print ('Accuracy could not be verified: ', coord)
-    if(response.RC==1285) :
+        coord = [response.parameters[0], response.parameters[1], response.parameters[2]]
+        if (Debug_Level == 1):
+            print('Accuracy could not be verified: ', coord)
+    if (response.RC == 1285):
         error = 1285
-        coord = [response.parameters[0],response.parameters[1]]
-        if(Debug_Level==1) :
-            print ('Angles read successfully: ', coord)
-
+        coord = [response.parameters[0], response.parameters[1]]
+        if (Debug_Level == 1):
+            print('Angles read successfully: ', coord)
 
     return [error, response.RC, coord]
 
 
-def TMC_QuickDist() :
+def TMC_QuickDist():
     """ [GeoCOM manual **p138**] """
 
     coord = []
     request = CreateRequest('2117')
     response = SerialRequest(request)
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        coord = [response.parameters[0],response.parameters[1],response.parameters[2]]
+        coord = [response.parameters[0], response.parameters[1], response.parameters[2]]
 
     return [error, response.RC, coord]
 
 
-def TMC_GetAngle(mode = 1) :
+def TMC_GetAngle(mode=1):
     """ Refer to *TMC_GetAngle5* in GeoCOM manual **p136** """
     coord = []
-    request = CreateRequest('2107',[mode])
+    request = CreateRequest('2107', [mode])
 
     response = SerialRequest(request)
     error = 1
 
-    if(len(response.parameters)==2) :
+    if (len(response.parameters) == 2):
 
-        if(response.RC==0):
-
+        if (response.RC == 0):
             error = 0
-            coord = [response.parameters[0],response.parameters[1]]
+            coord = [response.parameters[0], response.parameters[1]]
 
     return [error, response.RC, coord]
 
@@ -1089,48 +1148,49 @@ def TMC_GetAngle(mode = 1) :
 def TMC_GetEdmMode():
     """ """
 
-#    EDM_MODE = {0 : 'EDM_MODE_NOT_USED',
-#                1 : 'EDM_SINGLE_TAPE',
-#                2 : 'EDM_SINGLE_STANDARD',
-#                3 : 'EDM_SINGLE_FAST',
-#                4 : 'EDM_SINGLE_LRANGE',
-#                5 : 'BAP_CONT_REF_FAST',
-#                6 : 'BAP_CONT_RLESS_VISIBLE',
-#                7 : 'BAP_AVG_REF_STANDARD',
-#                8 : 'BAP_AVG_REF_VISIBLE',
-#                9 : 'BAP_AVG_RLESS_VISIBLE',
-#                10 :'BAP_CONT_REF_SYNCHRO',
-#                11 :'BAP_SINGLE_REF_PRECISE'}
-##    EDM_MODE :
-##        EDM_MODE_NOT_USED       0, // Init value
-##                 1, // IR Standard Reflector Tape
-##             2, // IR Standard
-##                 3, // IR Fast
-##               4, // LO Standard
-##        EDM_SINGLE_SRANGE       5, // RL Standard
-##        EDM_CONT_STANDARD       6, // Standard repeated measurement
-##        EDM_CONT_DYNAMIC        7, // IR Tacking
-##        EDM_CONT_REFLESS        8, // RL Tracking
-##        EDM_CONT_FAST           9, // Fast repeated measurement
-##        EDM_AVERAGE_IR          10,// IR Average
-##        EDM_AVERAGE_SR          11,// RL Average
-##        EDM_AVERAGE_LR          12,// LO Average
-##        EDM_PRECISE_IR          13,// IR Precise (TS30, TM30)
-##        EDM_PRECISE_TAPE        14,// IR Precise Reflector Tape (TS30, TM30)
-    request = CreateRequest('2021',[])
+    #    EDM_MODE = {0 : 'EDM_MODE_NOT_USED',
+    #                1 : 'EDM_SINGLE_TAPE',
+    #                2 : 'EDM_SINGLE_STANDARD',
+    #                3 : 'EDM_SINGLE_FAST',
+    #                4 : 'EDM_SINGLE_LRANGE',
+    #                5 : 'BAP_CONT_REF_FAST',
+    #                6 : 'BAP_CONT_RLESS_VISIBLE',
+    #                7 : 'BAP_AVG_REF_STANDARD',
+    #                8 : 'BAP_AVG_REF_VISIBLE',
+    #                9 : 'BAP_AVG_RLESS_VISIBLE',
+    #                10 :'BAP_CONT_REF_SYNCHRO',
+    #                11 :'BAP_SINGLE_REF_PRECISE'}
+    ##    EDM_MODE :
+    ##        EDM_MODE_NOT_USED       0, // Init value
+    ##                 1, // IR Standard Reflector Tape
+    ##             2, // IR Standard
+    ##                 3, // IR Fast
+    ##               4, // LO Standard
+    ##        EDM_SINGLE_SRANGE       5, // RL Standard
+    ##        EDM_CONT_STANDARD       6, // Standard repeated measurement
+    ##        EDM_CONT_DYNAMIC        7, // IR Tacking
+    ##        EDM_CONT_REFLESS        8, // RL Tracking
+    ##        EDM_CONT_FAST           9, // Fast repeated measurement
+    ##        EDM_AVERAGE_IR          10,// IR Average
+    ##        EDM_AVERAGE_SR          11,// RL Average
+    ##        EDM_AVERAGE_LR          12,// LO Average
+    ##        EDM_PRECISE_IR          13,// IR Precise (TS30, TM30)
+    ##        EDM_PRECISE_TAPE        14,// IR Precise Reflector Tape (TS30, TM30)
+    request = CreateRequest('2021', [])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('EDM Mode read successfully: ')
+        if (Debug_Level == 1):
+            print('EDM Mode read successfully: ')
 
-    return [error, response.RC,response.parameters]
+    return [error, response.RC, response.parameters]
+
 
 #
-#def TMC_SetEdmMode(mode) :
+# def TMC_SetEdmMode(mode) :
 #
 ##    EDM_MODE :
 ##        EDM_MODE_NOT_USED       0, // Init value
@@ -1184,19 +1244,21 @@ MOT_TERM = 7 // terminates the controller task
 
 '''
 
+
 def MOT_StartController(ControlMode=1):
     """ [GeoCOM manual **p119**] """
-    request = CreateRequest('6001',[ControlMode])
+    request = CreateRequest('6001', [ControlMode])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Motor controller started')
+        if (Debug_Level == 1):
+            print('Motor controller started')
 
     return [error, response.RC, []]
+
 
 '''
 enum MOT_STOPMODE #GeoCom manual p83
@@ -1205,39 +1267,43 @@ MOT_NORMAL = 0, // slow down with current acceleration
 MOT_SHUTDOWN = 1 // slow down by switch off power supply
 '''
 
+
 def MOT_StopController(Mode=0):
     """ [GeoCOM manual **p120**] """
 
-    request = CreateRequest('6000',[Mode])
+    request = CreateRequest('6000', [Mode])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Motor controller stopped')
-
+        if (Debug_Level == 1):
+            print('Motor controller stopped')
 
     return [error, response.RC, []]
+
+
 '''
 
 '''
-def MOT_SetVelocity(Hz_speed,v_speed) :
+
+
+def MOT_SetVelocity(Hz_speed, v_speed):
     """ [GeoCOM manual **p121**] """
 
-    request = CreateRequest('6004',[Hz_speed,v_speed])
+    request = CreateRequest('6004', [Hz_speed, v_speed])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Velocity set')
-
+        if (Debug_Level == 1):
+            print('Velocity set')
 
     return [error, response.RC, []]
+
 
 """#############################################################################
 ######################## BAP - Basic Applications ##############################
@@ -1246,83 +1312,82 @@ Basic Applications; some functions, which can easily be used to get measuring
 data.
 """
 
-BAP_TARGET_TYPE = { 0 : 'BAP_REFL_USE', # with reflector
-                    1 : 'BAP_REFL_LESS'} # without reflector
+BAP_TARGET_TYPE = {0: 'BAP_REFL_USE',  # with reflector
+                   1: 'BAP_REFL_LESS'}  # without reflector
 
-def BAP_GetTargetType() :
+
+def BAP_GetTargetType():
     """ [GeoCOM manual **p71**] """
     parameter = []
-    request = CreateRequest('17022',[])
+    request = CreateRequest('17022', [])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
         parameter = response.parameters[0]
 
-        if(Debug_Level==1) :
-            print ('Target type: ', BAP_TARGET_TYPE[int(response.parameters[0])][1])
-
+        if (Debug_Level == 1):
+            print('Target type: ', BAP_TARGET_TYPE[int(response.parameters[0])][1])
 
     return [error, response.RC, parameter]
 
 
-
-def BAP_SetTargetType(eTargetType = 0) :
+def BAP_SetTargetType(eTargetType=0):
     """ [GeoCOM manual **p72**] """
 
-    request = CreateRequest('17021',[eTargetType])
+    request = CreateRequest('17021', [eTargetType])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Target type set successfully ')
-
+        if (Debug_Level == 1):
+            print('Target type set successfully ')
 
     return [error, response.RC, []]
 
-#BAP_TARGET_TYPE
-#BAP_REFL_USE = 0 // with reflector
-#BAP_REFL_LESS = 1 // without reflector
 
-BAP_PRISMTYPE = {0 : ['BAP_PRISM_ROUND', 'Leica Circular Prism'],
-                 1 : ['BAP_PRISM_MINI', 'Leica Mini Prism'],
-                 2 : ['BAP_PRISM_TAPE', 'Leica Reflector Tape'],
-                 3 : ['BAP_PRISM_360', 'Leica 360 Prism'],
-                 4 : ['BAP_PRISM_USER1', 'not supported'],
-                 5 : ['BAP_PRISM_USER2', 'not supported'],
-                 6 : ['BAP_PRISM_USER3', 'not supported'],
-                 7 : ['BAP_PRISM_360_MINI', 'Leica Mini 360 Prism'],
-                 8 : ['BAP_PRISM_MINI_ZERO', 'Leica Mini Zero Prism'],
-                 9 : ['BAP_PRISM_USE', 'User Defined Prism'],
-                 10 :['BAP_PRISM_NDS_TAPE','Leica HDS Target'],
-                 11 :['BAP_PRISM_GRZ121_ROUND', 'GRZ121 360 Prism for Machine Guidance'],
-                 12 :['BAP_PRISM_MA_MP3122', 'MPR122 360 Prism for Machine Guidance'] }
+# BAP_TARGET_TYPE
+# BAP_REFL_USE = 0 // with reflector
+# BAP_REFL_LESS = 1 // without reflector
+
+BAP_PRISMTYPE = {0: ['BAP_PRISM_ROUND', 'Leica Circular Prism'],
+                 1: ['BAP_PRISM_MINI', 'Leica Mini Prism'],
+                 2: ['BAP_PRISM_TAPE', 'Leica Reflector Tape'],
+                 3: ['BAP_PRISM_360', 'Leica 360 Prism'],
+                 4: ['BAP_PRISM_USER1', 'not supported'],
+                 5: ['BAP_PRISM_USER2', 'not supported'],
+                 6: ['BAP_PRISM_USER3', 'not supported'],
+                 7: ['BAP_PRISM_360_MINI', 'Leica Mini 360 Prism'],
+                 8: ['BAP_PRISM_MINI_ZERO', 'Leica Mini Zero Prism'],
+                 9: ['BAP_PRISM_USE', 'User Defined Prism'],
+                 10: ['BAP_PRISM_NDS_TAPE', 'Leica HDS Target'],
+                 11: ['BAP_PRISM_GRZ121_ROUND', 'GRZ121 360 Prism for Machine Guidance'],
+                 12: ['BAP_PRISM_MA_MP3122', 'MPR122 360 Prism for Machine Guidance']}
 
 
-def BAP_GetPrismType() :
+def BAP_GetPrismType():
     """ [GeoCOM manual **p73**] """
     parameter = []
 
-    request = CreateRequest('17009',[])
+    request = CreateRequest('17009', [])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
         parameter = [response.parameters[0], BAP_PRISMTYPE[int(response.parameters[0])][1]]
-        if(Debug_Level==1) :
-            print ('Prism type: ', BAP_PRISMTYPE[int(response.parameters[0])][1])
-
+        if (Debug_Level == 1):
+            print('Prism type: ', BAP_PRISMTYPE[int(response.parameters[0])][1])
 
     return [error, response.RC, parameter]
 
-def BAP_SetPrismType(ePrismType) :
+
+def BAP_SetPrismType(ePrismType):
     """
     [GeoCOM manual **p74**]
 
@@ -1344,112 +1409,113 @@ def BAP_SetPrismType(ePrismType) :
     :rtype: list
     """
 
-    request = CreateRequest('17008',[ePrismType])
+    request = CreateRequest('17008', [ePrismType])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Prism type set')
+        if (Debug_Level == 1):
+            print('Prism type set')
 
     return [error, response.RC, []]
 
-def BAP_SetMeasPrg(eMeasPrg) :
+
+def BAP_SetMeasPrg(eMeasPrg):
     """ [GeoCOM manual **p81**] """
 
-    request = CreateRequest('17019',[eMeasPrg])
+    request = CreateRequest('17019', [eMeasPrg])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Measurement program set')
-
+        if (Debug_Level == 1):
+            print('Measurement program set')
 
     return [error, response.RC, []]
 
 
-BAP_USER_MEASPRG = {0 : ['BAP_SINGLE_REF_STANDARD','Reflector, Standard'],
-                    1 : ['BAP_SINGLE_REF_FAST', 'Reflector, Fast'],
-                    2 : ['BAP_SINGLE_REF_VISIBLE', 'Long Range, Standard'],
-                    3 : ['BAP_SINGLE_RLESS_VISIBLE', 'No Reflector, Standard'],
-                    4 : ['BAP_CONT_REF_STANDARD', 'Reflector, Tracking'],
-                    5 : ['BAP_CONT_REF_FAST', 'not available'],
-                    6 : ['BAP_CONT_RLESS_VISIBLE', 'No Reflector, Fast Tracking'],
-                    7 : ['BAP_AVG_REF_STANDARD', 'Reflector, Average'],
-                    8 : ['BAP_AVG_REF_VISIBLE', 'Long Range, Average'],
-                    9 : ['BAP_AVG_RLESS_VISIBLE', 'No Reflector, Average'],
-                    10 :['BAP_CONT_REF_SYNCHRO', 'Reflector, Synchro Tracking'],
-                    11 :['BAP_SINGLE_REF_PRECISE','not available']}
+BAP_USER_MEASPRG = {0: ['BAP_SINGLE_REF_STANDARD', 'Reflector, Standard'],
+                    1: ['BAP_SINGLE_REF_FAST', 'Reflector, Fast'],
+                    2: ['BAP_SINGLE_REF_VISIBLE', 'Long Range, Standard'],
+                    3: ['BAP_SINGLE_RLESS_VISIBLE', 'No Reflector, Standard'],
+                    4: ['BAP_CONT_REF_STANDARD', 'Reflector, Tracking'],
+                    5: ['BAP_CONT_REF_FAST', 'not available'],
+                    6: ['BAP_CONT_RLESS_VISIBLE', 'No Reflector, Fast Tracking'],
+                    7: ['BAP_AVG_REF_STANDARD', 'Reflector, Average'],
+                    8: ['BAP_AVG_REF_VISIBLE', 'Long Range, Average'],
+                    9: ['BAP_AVG_RLESS_VISIBLE', 'No Reflector, Average'],
+                    10: ['BAP_CONT_REF_SYNCHRO', 'Reflector, Synchro Tracking'],
+                    11: ['BAP_SINGLE_REF_PRECISE', 'not available']}
 
-def BAP_MeasDistanceAngle(mode = 6):
+
+def BAP_MeasDistanceAngle(mode=6):
     """ [GeoCOM manual **p82**] """
     coord = []
 
-    request = CreateRequest('17017',[mode])
+    request = CreateRequest('17017', [mode])
 
     response = SerialRequest(request)
 
     error = None
 
-    if(len(response.parameters)==4) :
+    if (len(response.parameters) == 4):
 
-        coord = [float(response.parameters[0]),float(response.parameters[1]),float(response.parameters[2]),int(response.parameters[3])]
+        coord = [float(response.parameters[0]), float(response.parameters[1]), float(response.parameters[2]),
+                 int(response.parameters[3])]
 
-        if(Debug_Level==1) :
-            print ('Got data successfully: ', coord)
+        if (Debug_Level == 1):
+            print('Got data successfully: ', coord)
 
     return [error, response.RC, coord]
 
-def BAP_GetMeasPrg() :
+
+def BAP_GetMeasPrg():
     """ [GeoCOM manual **p80**] """
 
     parameter = []
 
-
-    request = CreateRequest('17018',[])
+    request = CreateRequest('17018', [])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        parameter = [response.parameters[0],BAP_USER_MEASPRG[int(response.parameters[0])][1]]
-        if(Debug_Level==1) :
-            print ('Measurement program: ', BAP_USER_MEASPRG[int(response.parameters[0])][1])
-
+        parameter = [response.parameters[0], BAP_USER_MEASPRG[int(response.parameters[0])][1]]
+        if (Debug_Level == 1):
+            print('Measurement program: ', BAP_USER_MEASPRG[int(response.parameters[0])][1])
 
     return [error, response.RC, parameter]
 
 
-def BAP_SearchTarget(bDummy = 0) :
+def BAP_SearchTarget(bDummy=0):
     """ [GeoCOM manual **p84**] """
 
-    request = CreateRequest('17020',[bDummy])
+    request = CreateRequest('17020', [bDummy])
 
-    response = SerialRequest(request,0,10)
+    response = SerialRequest(request, 0, 10)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Prism found!')
+        if (Debug_Level == 1):
+            print('Prism found!')
 
-    else :
-        if(Debug_Level==1) :
+    else:
+        if (Debug_Level == 1):
 
-            if(response.RC == 8710) :
-                print ('No prism found!')
+            if (response.RC == 8710):
+                print('No prism found!')
 
-            elif(response.RC == 8711) :
-                print ('Multiple prism found!')
-
+            elif (response.RC == 8711):
+                print('Multiple prism found!')
 
     return [error, response.RC, []]
+
 
 """#############################################################################
 ############################## AUS - ALT User ##################################
@@ -1457,37 +1523,39 @@ def BAP_SearchTarget(bDummy = 0) :
 The subsystem "Alt User" mainly contains functions behind the "SHIFT" + "USER"
 button.
 """
-def AUS_SetUserLockState(on = 0):
+
+
+def AUS_SetUserLockState(on=0):
     """ [GeoCOM manual **p42**] """
 
-    request = CreateRequest('18007',[on])
+    request = CreateRequest('18007', [on])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Lock activated or deactivated')
-
+        if (Debug_Level == 1):
+            print('Lock activated or deactivated')
 
     return [error, response.RC, []]
 
-def AUS_SetUserAtrState(on = 0):
+
+def AUS_SetUserAtrState(on=0):
     """ [GeoCOM manual **p40**] """
 
-    request = CreateRequest('18005',[on])
+    request = CreateRequest('18005', [on])
 
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('ATR activated or deactivated')
-
+        if (Debug_Level == 1):
+            print('ATR activated or deactivated')
 
     return [error, response.RC, []]
+
 
 def AUS_GetUserLockState():
     """ [GeoCOM manual **p41**] """
@@ -1497,11 +1565,10 @@ def AUS_GetUserLockState():
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('Lock activated or deactivated')
-
+        if (Debug_Level == 1):
+            print('Lock activated or deactivated')
 
     return [error, response.RC, response.parameters]
 
@@ -1514,10 +1581,84 @@ def AUS_GetUserAtrState():
     response = SerialRequest(request)
 
     error = 1
-    if(response.RC==0) :
+    if (response.RC == 0):
         error = 0
-        if(Debug_Level==1) :
-            print ('ATR activated or deactivated')
-
+        if (Debug_Level == 1):
+            print('ATR activated or deactivated')
 
     return [error, response.RC, response.parameters]
+
+""""##############################################################################
+################# BASIC MAN MACHINE INTERFACE – BMM #############################
+##############################################################################"""
+
+def  BMM_BeepAlarm():
+    """
+    This function produces a triple beep with the configured intensity and frequency,
+    which cannot be changed. If there is a continuous signal active, it will be stopped before.
+    :return:
+    """
+    request = CreateRequest('11004')
+
+    response = SerialRequest(request)
+
+    error = 1
+    if (response.RC == 0):
+        error = 0
+        if (Debug_Level == 1):
+            print('Beep 3 times \n')
+
+    return [error, response.RC, []]
+
+def BMM_BeepNormal():
+    """
+    This function produces a single beep with the configured intensity and frequency, which cannot be changed.
+    If a continuous signal is active, it will be stopped first.
+    :return:
+    """
+    request = CreateRequest('11003')
+
+    response = SerialRequest(request)
+
+    error = 1
+    if (response.RC == 0):
+        error = 0
+        if (Debug_Level == 1):
+            print('Beep once \n')
+
+    return [error, response.RC, []]
+
+def BMM_BeepOn(nIntens = 10):
+    """
+    This function switches on the beep-signal with the intensity nIntens.
+    If a continuous signal is active, it will be stopped first. Turn off the beeping device with IOS_BeepOff.
+    :return:
+    """
+    request = CreateRequest('20001')
+
+    response = SerialRequest(request)
+
+    error = 1
+    if (response.RC == 0):
+        error = 0
+        if (Debug_Level == 1):
+            print('Beep once \n')
+
+    return [error, response.RC, []]
+
+def IOS_BeepOff():
+    """
+    This function switches off the beep-signal.
+    :return:
+    """
+    request = CreateRequest('20000')
+
+    response = SerialRequest(request)
+
+    error = 1
+    if (response.RC == 0):
+        error = 0
+        if (Debug_Level == 1):
+            print('Beep once \n')
+
+    return [error, response.RC, []]
