@@ -7,10 +7,16 @@ sys.path.append(r"C:\Python27\Lib")
 sys.path.append(r"C:\Python27\Lib\site-packages")
 import serial
 import time
-
+from enum import Enum
 ser = 0
 Debug_Level = 1;
 GTrId = 0;
+
+class AUT_POSMODE(Enum):
+    AUT_NORMAL = 0 # fast positioningmode
+    AUT_PRECISE = 1
+    AUT_Fast = 2
+
 
 class ResponseClass:
     """
@@ -36,7 +42,7 @@ class ResponseClass:
         :type response: ResponseClass
         """
         if(Debug_Level==2) :
-            print 'response = ',response
+            print('response = ',response)
         # remove the ' from the string, remove the end-line character and split it up
         words = response.replace('\'','').strip().split(',')
         # print words
@@ -47,7 +53,7 @@ class ResponseClass:
             self.RC = int(words2[1])
             self.parameters = words[3:len(words)]
             if(self.RC!=0 and Debug_Level==1) :
-                print 'Problem occurred, Error code: ', self.RC
+                print ('Problem occurred, Error code: ', self.RC)
 
 class SerialRequestError(Exception):
     """
@@ -96,7 +102,7 @@ def SerialRequest(request, length = 0, t_timeout = 3):
     :exception SerialRequestError: thrown if an error occurs during the communication
     """
     if(Debug_Level==2) :
-        print 'request = ', request
+        print ('request = ', request)
     id = getTrId(request)
     response = ResponseClass()
     global ser
@@ -220,14 +226,14 @@ def COM_OpenConnection(ePort, eRate, nRetries=10):
                 ser.close()
 
         if(not ser.isOpen() and Debug_Level==1) :
-            print 'Problem opening port'
+            print('Problem opening port')
 
         # 0 = everything ok
         return [not ser.isOpen(),ser,0]
 
     except Exception as e:
-        print "Connection Error - Leica TS not connected?\n"
-        print str(e)
+        print ("Connection Error - Leica TS not connected?\n")
+        print (str(e))
         return [1,0,[]]
 
 
@@ -246,7 +252,7 @@ def COM_CloseConnection():
 
 
     if(not ser.isOpen() and Debug_Level==1) :
-        print 'Problem closing port'
+        print ('Problem closing port')
 
     return [ser.isOpen(),0,[]]
 
@@ -261,17 +267,17 @@ def COM_SwitchOnTPS(eOnMode=2) :
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Turn on TPS'
+            print ('Turn on TPS')
 
     elif(response.RC==5) :
         error = 0
         if(Debug_Level==1) :
-            print 'TPS already turned on'
+            print ('TPS already turned on')
 
     else :
         error = 1
         if(Debug_Level==1) :
-            print 'Problem turning TPS on'
+            print ('Problem turning TPS on')
 
     return [error,response.RC,[]]
 
@@ -287,12 +293,12 @@ def COM_SwitchOffTPS(eOffMode=0) :
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Shut down TPS'
+            print ('Shut down TPS')
 
     else :
         error = 1
         if(Debug_Level==1) :
-            print 'Error shutting down TPS'
+            print ('Error shutting down TPS')
 
     return [error,response.RC,[]]
 
@@ -310,7 +316,7 @@ def COM_GetSWVersion() :
         error = 1
 
     # Print a list [Software release, Software version, Software subversion]
-    print response.parameters
+    print(response.parameters )
 
     return [error,response.RC,[]]
 
@@ -342,7 +348,7 @@ def CSV_GetDateTime():
             DateTime.append(HexToDec(response.parameters[i]))
 
         if(Debug_Level==1) :
-            print 'Date and Time: ', DateTime
+            print ('Date and Time: ', DateTime)
 
 
 
@@ -364,7 +370,7 @@ def CSV_GetInstrumentNo():
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Serial number : ' + str(response.parameters)
+            print ('Serial number : ' + str(response.parameters))
 
     return [error, response.RC, response.parameters]
 
@@ -374,7 +380,6 @@ def CSV_GetInstrumentName():
     FlexLine Geocom 1.20 page 55
     :return: Serial Number
     """
-    DateTime = []
 
     request = CreateRequest('5004', [])
     response = SerialRequest(request)
@@ -383,7 +388,7 @@ def CSV_GetInstrumentName():
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Instrument name : ' + str(response.parameters)
+            print ('Instrument name : ' + str(response.parameters))
 
     return [error, response.RC, response.parameters]
 
@@ -402,7 +407,7 @@ def CSV_GetReflectorlessClass():
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Prism : ' + str(response.parameters)
+            print ('Prism : ' + str(response.parameters))
 
     return [error, response.RC, response.parameters]
 
@@ -438,7 +443,7 @@ def AUT_MakePositioning(Hz, V, POSMode=0, ATRMode=0, bDummy=0):
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Going to new position: ', Hz, ',', V
+            print ('Going to new position: ', Hz, ',', V)
 
 
     return [error, response.RC, []]
@@ -474,11 +479,11 @@ def AUT_Search(Hz_Area, V_Area, bDummy = 0):
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Target search successful'
+            print ('Target search successful')
     else :
         if(Debug_Level==1) :
             if(response.RC==8710) :
-                print 'No target found'
+                print ('No target found')
 
     return [error, response.RC, []]
 
@@ -539,7 +544,7 @@ def AUT_LockIn() :
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Lock successful'
+            print ('Lock successful')
 
 
     return [error, response.RC, []]
@@ -566,7 +571,7 @@ def AUT_GetSearchArea():
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Parameters: ', response.parameters
+            print ('Parameters: ', response.parameters)
 
     return [error, response.RC, response.parameters]
 
@@ -686,7 +691,67 @@ def AUT_PS_SearchWindow():
 
     return [error, response.RC, []]
 
+def AUT_ReadToi():
+    """
+    This command reads the current setting for the positioning tolerances of the Hz- and V-
+    nstrument axis. This command is valid for motorized instruments only.
+    :return: [error, RC, [Tolerance Hz[double],Tolerance V[double]]
+    """
+    request = CreateRequest('9008',[])
+    response = SerialRequest(request,0,120)
+    print(str(response.RC))
+    error = 1
+    if(response.RC==0) :
+        error = 0
 
+    return [error, response.RC, []]
+
+def AUT_SetTol(toleranceHz = 1.0, toleranceV = 1.0):
+    """
+    This command sets new values for the positioning tolerances of the Hz- and V- instrument axes.
+    This command is valid for motorized instruments only.
+    The tolerances must be in the range of 1[cc] ( =1.57079 E-06[rad] ) to 100[cc] ( =1.57079 E-04[rad]
+    :return: error, RC, []
+    """
+
+    request = CreateRequest('9007',[toleranceHz, toleranceV])
+    response = SerialRequest(request)
+    print(str(response.RC))
+    error = 1
+    if(response.RC==0) :
+        error = 0
+
+    return [error, response.RC, []]
+
+def AUT_ReadTimeout():
+    """
+    This command reads the current setting for the positioning time out (maximum time to perform positioning).
+    :return: error, RC, RC, [TimeoutHz[double], TimeoutV[double]]
+    """
+    request = CreateRequest('9012',[])
+    response = SerialRequest(request)
+    print(str(response.RC))
+    error = 1
+    if(response.RC==0) :
+        error = 0
+
+    return [error, response.RC, [response.parameters]]
+
+def AUT_SetTimeout():
+    #TODO Maybe in the future
+    pass
+
+def AUT_ChangeFace(PosMode, ATRMode):
+    """
+    This procedure turns the telescope to the other face. If another function is active, for example locking onto a target,
+    then this function is terminated and the procedure is executed. If the position mode is set to normal (PosMode = AUT_NORMAL)
+    it is allowed that the current value of the compensator measurement is inexact. Positioning precise (PosMode = AUT_PRECISE)
+    forces a new compensator measurement. If this measurement is not possible, the position does not take place.
+    If ATR mode is activated and the ATR mode is set to AUT_TARGET, the instrument tries to position onto a target in the destination
+    area. If LOCK mode is activated and the ATR mode is set to AUT_TARGET, the instrument tries to lock onto a target in the destination
+    area.
+    :return: error, RC []
+    """
 """#############################################################################
 #################### EDM - Electronic Distance Measurement #####################
 ################################################################################
@@ -718,7 +783,7 @@ def EDM_Laserpointer(eOn = 0):
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Laserpointer turned on/off'
+            print ('Laserpointer turned on/off')
 
 
     return [error, response.RC, []]
@@ -740,7 +805,7 @@ def TMC_GetStation():
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Coordinates : ' + str(response.parameters)
+            print ('Coordinates : ' + str(response.parameters))
 
     #%R1P,0,0:RC,E0[double],N0[double],H0[double],Hi[double]
     return [error, response.RC, response.parameters]
@@ -758,7 +823,7 @@ def TMC_SetStation(e0 = 0.0, N0 = 0.0, H0 = 0.0, Hi = 0.0):
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Coorinates set : ' + str(response.RC)
+            print ('Coorinates set : ' + str(response.RC))
 
     #%R1P,0,0:RC,E0[double],N0[double],H0[double],Hi[double]
     return [error, response.RC, []]
@@ -774,7 +839,7 @@ def TMC_GetRefractiveMethod():
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Prism : ' + str(response.parameters)
+            print ('Prism : ' + str(response.parameters))
 
     return [error, response.RC, response.parameters]
 def TMC_SetRefractiveMethod():
@@ -838,7 +903,7 @@ def TMC_DoMeasure(cmd=1, mode=1) : #TMC Measurement Modes in geocom manual p.91
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Measuring successful'
+            print ('Measuring successful')
 
 
     return [error, response.RC, []]
@@ -889,7 +954,7 @@ def TMC_SetEdmMode(mode=6) :
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'EDM Mode set successfully'
+            print ('EDM Mode set successfully')
 
     return [error, response.RC, []]
 
@@ -910,7 +975,7 @@ def TMC_GetCoordinate(WaitTime=100,mode=1) :
         coord = [float(response.parameters[0]),float(response.parameters[1]),float(response.parameters[2])]
 
         if(Debug_Level==1) :
-            print 'Coordinates read successfully: ', coord
+            print ('Coordinates read successfully: ', coord)
 
 
     return [error, response.RC, coord]
@@ -931,7 +996,7 @@ def TMC_GetStation(WaitTime=100):
         coord = [float(response.parameters[0]),float(response.parameters[1]),float(response.parameters[2]),float(response.parameters[3])]
 
         if(Debug_Level==1) :
-            print 'Station coordinates received successfully! ',coord
+            print ('Station coordinates received successfully! ',coord)
 
 
     return [error, response.RC, []]
@@ -973,17 +1038,17 @@ def TMC_GetSimpleMea(WaitTime=100, mode = 1) : #TMC_GetSimpleMea - Returns angle
             return [1, 1, []]
         coord = [response.parameters[0],response.parameters[1],response.parameters[2]]
         if(Debug_Level==1) :
-            print 'Coordinates read successfully: ', coord
+            print ('Coordinates read successfully: ', coord)
     if(response.RC==1284) :
         error = 1284
         coord = [response.parameters[0],response.parameters[1],response.parameters[2]]
         if(Debug_Level==1) :
-            print 'Accuracy could not be verified: ', coord
+            print ('Accuracy could not be verified: ', coord)
     if(response.RC==1285) :
         error = 1285
         coord = [response.parameters[0],response.parameters[1]]
         if(Debug_Level==1) :
-            print 'Angles read successfully: ', coord
+            print ('Angles read successfully: ', coord)
 
 
     return [error, response.RC, coord]
@@ -1060,7 +1125,7 @@ def TMC_GetEdmMode():
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'EDM Mode read successfully: '
+            print ('EDM Mode read successfully: ')
 
     return [error, response.RC,response.parameters]
 
@@ -1129,7 +1194,7 @@ def MOT_StartController(ControlMode=1):
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Motor controller started'
+            print ('Motor controller started')
 
     return [error, response.RC, []]
 
@@ -1151,7 +1216,7 @@ def MOT_StopController(Mode=0):
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Motor controller stopped'
+            print ('Motor controller stopped')
 
 
     return [error, response.RC, []]
@@ -1169,7 +1234,7 @@ def MOT_SetVelocity(Hz_speed,v_speed) :
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Velocity set'
+            print ('Velocity set')
 
 
     return [error, response.RC, []]
@@ -1197,7 +1262,7 @@ def BAP_GetTargetType() :
         parameter = response.parameters[0]
 
         if(Debug_Level==1) :
-            print 'Target type: ', BAP_TARGET_TYPE[int(response.parameters[0])][1]
+            print ('Target type: ', BAP_TARGET_TYPE[int(response.parameters[0])][1])
 
 
     return [error, response.RC, parameter]
@@ -1215,7 +1280,7 @@ def BAP_SetTargetType(eTargetType = 0) :
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Target type set successfully '
+            print ('Target type set successfully ')
 
 
     return [error, response.RC, []]
@@ -1252,7 +1317,7 @@ def BAP_GetPrismType() :
         error = 0
         parameter = [response.parameters[0], BAP_PRISMTYPE[int(response.parameters[0])][1]]
         if(Debug_Level==1) :
-            print 'Prism type: ', BAP_PRISMTYPE[int(response.parameters[0])][1]
+            print ('Prism type: ', BAP_PRISMTYPE[int(response.parameters[0])][1])
 
 
     return [error, response.RC, parameter]
@@ -1287,7 +1352,7 @@ def BAP_SetPrismType(ePrismType) :
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Prism type set'
+            print ('Prism type set')
 
     return [error, response.RC, []]
 
@@ -1302,7 +1367,7 @@ def BAP_SetMeasPrg(eMeasPrg) :
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Measurement program set'
+            print ('Measurement program set')
 
 
     return [error, response.RC, []]
@@ -1336,7 +1401,7 @@ def BAP_MeasDistanceAngle(mode = 6):
         coord = [float(response.parameters[0]),float(response.parameters[1]),float(response.parameters[2]),int(response.parameters[3])]
 
         if(Debug_Level==1) :
-            print 'Got data successfully: ', coord
+            print ('Got data successfully: ', coord)
 
     return [error, response.RC, coord]
 
@@ -1355,7 +1420,7 @@ def BAP_GetMeasPrg() :
         error = 0
         parameter = [response.parameters[0],BAP_USER_MEASPRG[int(response.parameters[0])][1]]
         if(Debug_Level==1) :
-            print 'Measurement program: ', BAP_USER_MEASPRG[int(response.parameters[0])][1]
+            print ('Measurement program: ', BAP_USER_MEASPRG[int(response.parameters[0])][1])
 
 
     return [error, response.RC, parameter]
@@ -1372,16 +1437,16 @@ def BAP_SearchTarget(bDummy = 0) :
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Prism found!'
+            print ('Prism found!')
 
     else :
         if(Debug_Level==1) :
 
             if(response.RC == 8710) :
-                print 'No prism found!'
+                print ('No prism found!')
 
             elif(response.RC == 8711) :
-                print 'Multiple prism found!'
+                print ('Multiple prism found!')
 
 
     return [error, response.RC, []]
@@ -1403,7 +1468,7 @@ def AUS_SetUserLockState(on = 0):
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Lock activated or deactivated'
+            print ('Lock activated or deactivated')
 
 
     return [error, response.RC, []]
@@ -1419,7 +1484,7 @@ def AUS_SetUserAtrState(on = 0):
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'ATR activated or deactivated'
+            print ('ATR activated or deactivated')
 
 
     return [error, response.RC, []]
@@ -1435,10 +1500,11 @@ def AUS_GetUserLockState():
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'Lock activated or deactivated'
+            print ('Lock activated or deactivated')
 
 
     return [error, response.RC, response.parameters]
+
 
 def AUS_GetUserAtrState():
     """ [GeoCOM manual **p39**] """
@@ -1451,7 +1517,7 @@ def AUS_GetUserAtrState():
     if(response.RC==0) :
         error = 0
         if(Debug_Level==1) :
-            print 'ATR activated or deactivated'
+            print ('ATR activated or deactivated')
 
 
     return [error, response.RC, response.parameters]

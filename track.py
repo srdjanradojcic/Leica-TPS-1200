@@ -3,7 +3,7 @@
 .. module:: track
 
 """
-
+import importlib
 import sys
 sys.path.append(r"C:\Python27\Lib")
 # sys.path.append(r"C:\Python27\Lib\site-packages")
@@ -16,9 +16,9 @@ from optparse import OptionParser
 from operator import neg
 import os
 
-
-reload(sys)
-sys.setdefaultencoding('utf8')
+#insted of reload that is obsolite in v3
+importlib.reload(sys)
+#sys.setdefaultencoding('utf8') In python 3 the utf8 is hardocred by default ;)
 OLD_COORD=[0,0,0]
 FAIL_COUNT=0
 DEBUG=False
@@ -40,10 +40,10 @@ def powerSearchPrism(cHz = 0, cV=1.57, aHz = 1.0 , aV = 1.0):
     :rtype: bool
 
     """
-    print cHz, cV, aHz, aV
+    print (cHz, cV, aHz, aV)
     print("powerSearchPrism")
     a = GeoCom.AUT_SetSearchArea(cHz, cV, aHz , aV, 1) # Set PowerSearch parameters
-    print a
+    print(a)
     b = GeoCom.AUT_PS_SetRange(5,100) # Set range of the PowerSearch in the interval [5,100] meters
     c = GeoCom.AUT_PS_EnableRange(1) # Activate the range restriction
     if GeoCom.AUT_PS_SearchWindow()[1] == 0: # Launch PowerSearch
@@ -184,10 +184,11 @@ def setup_station_manual(options):
     """
 
     set_laser(1)
-    raw_input('Put the laser on x axis and press <enter>')
+    #raw input is obsolite in v3
+    input('Put the laser on x axis and press <enter>')
     set_x_axis()
     set_prism_type(options.big_prism)
-    raw_input('Direct the station to the prism and press <enter>')
+    input('Direct the station to the prism and press <enter>') #raw input is obsolite in v3
     set_laser(0)
     if not powerSearchPrism():
         while not powerSearchPrism(0.0, 1.57, 6.28, 2):
@@ -318,14 +319,36 @@ def close():
 
 if __name__ == '__main__':
     #TODO Fine tuning
-    com_port = "COM1"
-    baudrate = 19200
+    com_port = ""
+    baudrate = 0
     i = 0
-
-    open(com_port, baudrate)
+    while(i < len(sys.argv)):
+        if (str(sys.argv[i]) == "-p"):
+            com_port = str(sys.argv[i+1])
+        elif (str(sys.argv[i]) == "-b"):
+            baudrate = str(sys.argv[i+1])
+        i = i + 1
+    if (com_port != "" and baudrate != 0):
+        print ("Oppening port : " + com_port + " , with baudrate - " + str(baudrate) + "\n")
+        open(com_port, baudrate)
+    else:
+       sys.exit("Invalid Arguments... Exiting...")
+    # try :
+    #     while True: #while program not interrupted by the user
+    #         t_start = time.time()
+    #         print get_measure()
+    #         t_end = time.time()
+    #         # print(t_end-t_start)
+    # except KeyboardInterrupt :
+    #     time.sleep(2)
+    #     os.system('color 0F')
+    #     j=GeoCom.COM_CloseConnection()
+    #     sys.exit("Keyboard Interruption by user")
+    # # Closing serial connection, when execution is stopped
+    # os.system('color 0F')
+    # GeoCom.COM_CloseConnection()
     GeoCom.CSV_GetInstrumentNo()
-    GeoCom.CSV_GetInstrumentName()
-    #os.system('color 0F')
+    os.system('color 0F')
     GeoCom.COM_CloseConnection()
 
 #TODO Create log insted of print
